@@ -13,6 +13,8 @@
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   -webkit-text-size-adjust: 100%;
+  --date-picker-background: #1b1e27;
+  --date-picker-foreground: #f7f7f7;
 }
 
 #map { 
@@ -25,6 +27,10 @@
 #date-picker {
   position: absolute;
   z-index: 2;
+}
+
+.date-time-field {
+  display: inline-block
 }
 
 a {
