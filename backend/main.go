@@ -3,9 +3,11 @@ package main
 import (
 	"database/sql"
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
@@ -69,6 +71,7 @@ func postLocation(ctx echo.Context) error {
 	res, err := db.Exec("INSERT INTO locations (t, batt, topic, lat, lon, tst, tid) VALUES (?, ?, ?, ?, ?, ?, ?);", p.T, p.Batt, p.Topic, p.Lat, p.Lon, p.Tst, p.Tid)
 	if err != nil {
 		log.Println("Insert error: ", err)
+		return ctx.String(http.StatusOK, "")
 	}
 
 	id, _ := res.LastInsertId()
@@ -76,7 +79,23 @@ func postLocation(ctx echo.Context) error {
 }
 
 func getLocations(ctx echo.Context) error {
-	rows, err := db.Query("SELECT * FROM locations")
+	start := ctx.QueryParam("start")
+	end := ctx.QueryParam("end")
+
+	query := "SELECT * from locations"
+	if start != "" && end != "" {
+		startTime, _ := time.Parse(time.RFC3339, start)
+		endTime, _ := time.Parse(time.RFC3339, end)
+		// TODO errors
+
+		log.Println(startTime.Unix(), endTime.Unix())
+
+		query += fmt.Sprintf(" where tst > %d and tst < %d", startTime.Unix(), endTime.Unix())
+	}
+
+	log.Println(query)
+
+	rows, err := db.Query(query)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err)
 	}
@@ -100,9 +119,10 @@ func main() {
 
 	e := echo.New()
 	e.Use(middleware.Logger())
+	e.Use(middleware.CORS())
 
 	e.GET("/locations", getLocations)
 	e.POST("/locations", postLocation)
 
-	e.Logger.Fatal(e.Start(":8090"))
+	e.Logger.Fatal(e.Start(":8091"))
 }
