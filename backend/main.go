@@ -124,5 +124,5 @@ func main() {
 	e.GET("/locations", getLocations)
 	e.POST("/locations", postLocation)
 
-	e.Logger.Fatal(e.Start(":8091"))
+	e.Logger.Fatal(e.Start(":8090"))
 }
