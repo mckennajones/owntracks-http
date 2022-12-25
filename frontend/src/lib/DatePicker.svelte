@@ -4,6 +4,7 @@
 
     const dispatch = createEventDispatcher();
 
+    const defaultValue = -1
     let nowDate = new Date()
 
     let years = [2022, 2021]
@@ -17,15 +18,14 @@
     function yearChange(e) {
         date = null;
         day = null;
-        month = "";
+        month = -1;
 
         dateChange();
     }
 
     function monthChange(e) {
-        date = null;
         day = null;
-        if (year == null || year == "") {
+        if (year == -1) {
             year = nowDate.getFullYear()
         }
         
@@ -41,13 +41,15 @@
     }
 
     function dateChange() {
+        console.log(year, month, day)
         let start: Date;
         let end: Date;
+        
         if (year && month && day) {
             console.log("all set")
             start = new Date(year, month, day, 0)
             end = new Date(year, month, day, 23, 59, 59)
-        } else if (year && month) {
+        } else if (year && month >= 0) {
             console.log("year and month set")
             // get month length by setting date to 0
             let tempDate = new Date(year, month + 1, 0)
@@ -70,7 +72,7 @@
 </script>
 
 <select name="year" bind:value={year} on:change={yearChange}>
-    <option value="" disabled selected hidden>Year</option>
+    <option value={defaultValue} disabled selected>Year</option>
     {#each years as year}
 		<option value={year}>
 			{year}
@@ -79,7 +81,7 @@
 </select>
 
 <select name="month" bind:value={month} on:change={monthChange}>
-    <option value="" disabled selected hidden>Month</option>
+    <option value={defaultValue} disabled selected>Month</option>
     {#each months as month}
 		<option value={months.indexOf(month)}>
 			{month}
@@ -87,5 +89,5 @@
 	{/each}
 </select>
 
-<DateInput placeholder="Day" bind:value={date} on:select={dayChange} format="dd" />
+<DateInput closeOnSelection placeholder="Day" bind:value={date} on:select={dayChange} format="dd" />
 

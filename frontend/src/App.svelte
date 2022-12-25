@@ -1,6 +1,5 @@
 <script lang="ts">
   import Map from './lib/Map.svelte'
-  import Day from './lib/Day.svelte'
 </script>
 
 <main>

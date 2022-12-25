@@ -6,7 +6,7 @@
 <script lang="ts">
     import maplibregl from 'maplibre-gl';
     import { onDestroy } from 'svelte';
-    import Day from './Day.svelte'
+    import DatePicker from './DatePicker.svelte'
 
     let map: maplibregl.Map;
     var markers = [];
@@ -63,9 +63,11 @@
             bounds.extend([point.Lon, point.Lat])
         });
 
-        map.fitBounds(bounds, {
-            padding: 100
-        });
+        if (data.length != 0) {
+            map.fitBounds(bounds, {
+                padding: 100
+            });
+        }
     };
 
     onDestroy(() => {
@@ -75,5 +77,5 @@
 
 <div id="map"></div>
 <div id="date-picker">
-    <Day on:dateChange={updateLocations} />
+    <DatePicker on:dateChange={updateLocations} />
 </div>
