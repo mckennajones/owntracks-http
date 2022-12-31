@@ -114,6 +114,24 @@ func getLocations(ctx echo.Context) error {
 	return ctx.JSON(http.StatusOK, data)
 }
 
+func deleteLocation(ctx echo.Context) error {
+	id := ctx.Param("id")
+	if id == "" {
+		return echo.NewHTTPError(http.StatusBadRequest, "ID required for delete")
+	}
+
+	query := fmt.Sprintf("DELETE FROM locations where id = %s", id)
+
+	println(query)
+
+	_, err := db.Exec(query)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, err)
+	}
+
+	return ctx.String(http.StatusOK, "deleted")
+}
+
 func main() {
 	initDatabase()
 
@@ -123,6 +141,7 @@ func main() {
 
 	e.GET("/locations", getLocations)
 	e.POST("/locations", postLocation)
+	e.DELETE("/locations/:id", deleteLocation)
 
 	e.Logger.Fatal(e.Start(":8090"))
 }
