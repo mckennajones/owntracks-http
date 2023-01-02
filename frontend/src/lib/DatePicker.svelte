@@ -1,44 +1,15 @@
 <script lang="ts">
   	import { createEventDispatcher } from 'svelte';
     import { DateInput } from 'date-picker-svelte';
+    import { DatePicker, DatePickerInput } from "carbon-components-svelte";
+    import "carbon-components-svelte/css/g90.css";
+
 
     const dispatch = createEventDispatcher();
 
-    const defaultValue = -1
-    let nowDate = new Date()
-
-    let years = [2023, 2022, 2021]
-    const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
-    
-    let date: Date;
     let day: any;
     let month: any;
     let year: any;
-
-    function yearChange(e) {
-        date = null;
-        day = null;
-        month = -1;
-
-        dateChange();
-    }
-
-    function monthChange(e) {
-        day = null;
-        if (year == -1) {
-            year = nowDate.getFullYear()
-        }
-        
-        dateChange();
-    }
-
-    function dayChange(e) {
-        year = date.getFullYear()
-        month = date.getMonth()
-        day = date.getDate()
-
-        dateChange();
-    }
 
     function dateChange() {
         console.log(year, month, day)
@@ -68,26 +39,36 @@
             end: end.toISOString()
 		});
     }
+
+    function datePickerChange(event: any) {
+        console.log(event)
+
+        const detail = event.detail
+        
+        if (detail.selectedDates.length != 2) {
+            return
+        }
+
+        const from: Date = detail.selectedDates[0]
+        const to: Date = detail.selectedDates[1]
+
+        if (from.toISOString() == to.toISOString()) {
+            console.log("Same")
+            to.setHours(23)
+            to.setMinutes(59)
+            to.setSeconds(59)
+        }
+
+        console.log(from, to)
+        dispatch('dateChange', {
+			start: from.toISOString(),
+            end: to.toISOString()
+		});
+    }
     
 </script>
 
-<select name="year" bind:value={year} on:change={yearChange}>
-    <option value={defaultValue} disabled selected>Year</option>
-    {#each years as year}
-		<option value={year}>
-			{year}
-		</option>
-	{/each}
-</select>
-
-<select name="month" bind:value={month} on:change={monthChange}>
-    <option value={defaultValue} disabled selected>Month</option>
-    {#each months as month}
-		<option value={months.indexOf(month)}>
-			{month}
-		</option>
-	{/each}
-</select>
-
-<DateInput closeOnSelection placeholder="Day" bind:value={date} on:select={dayChange} format="dd" />
-
+<DatePicker datePickerType="range" on:change={datePickerChange}>
+    <DatePickerInput hideLabel placeholder="mm/dd/yyyy" />
+    <DatePickerInput hideLabel placeholder="mm/dd/yyyy" />
+</DatePicker>
