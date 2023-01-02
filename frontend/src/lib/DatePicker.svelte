@@ -7,7 +7,7 @@
     const defaultValue = -1
     let nowDate = new Date()
 
-    let years = [2022, 2021]
+    let years = [2023, 2022, 2021]
     const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
     
     let date: Date;
@@ -45,7 +45,7 @@
         let start: Date;
         let end: Date;
         
-        if (year && month && day) {
+        if (year && month >= 0 && day) {
             console.log("all set")
             start = new Date(year, month, day, 0)
             end = new Date(year, month, day, 23, 59, 59)
