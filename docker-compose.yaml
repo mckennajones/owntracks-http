@@ -1,0 +1,26 @@
+version: "3"
+
+services:
+  backend:
+    container_name: owntracks-backend
+    image: owntracks-backend:0.1.0
+    build: ./backend 
+    ports:
+      - "8090:8090/tcp"
+    volumes:
+      - "./backend/data:/data:rw"
+    restart: unless-stopped
+  
+  frontend:
+    container_name: owntracks-frontend
+    image: owntracks-frontend:0.1.0
+    build: ./frontend
+    ports:
+      - "3001:80/tcp"
+    restart: unless-stopped
+
+# Not required
+networks:
+  default:
+    name: apps_shared
+    external: true
