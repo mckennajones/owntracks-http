@@ -62,11 +62,11 @@ func postLocation(ctx echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, err)
 	}
 
-	if p.Type != "location" {
-		return echo.NewHTTPError(http.StatusBadRequest, "Only location type requests allowed")
-	}
-
 	log.Println(p)
+
+	if p.Type != "location" {
+		return ctx.String(http.StatusOK, "Recieved request of type, "+p.Type+" which is not supported. Ignoring")
+	}
 
 	res, err := db.Exec("INSERT INTO locations (t, batt, topic, lat, lon, tst, tid) VALUES (?, ?, ?, ?, ?, ?, ?);", p.T, p.Batt, p.Topic, p.Lat, p.Lon, p.Tst, p.Tid)
 	if err != nil {
