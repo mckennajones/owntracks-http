@@ -16,11 +16,6 @@ services:
     image: owntracks-frontend:0.1.2
     build: ./frontend
     ports:
-      - "3001:80/tcp"
+      - "8080:80/tcp"
     restart: unless-stopped
 
-# Not required
-networks:
-  default:
-    name: apps_shared
-    external: true
