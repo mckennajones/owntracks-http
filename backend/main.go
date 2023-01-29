@@ -11,6 +11,8 @@ import (
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
+	"github.com/paulmach/orb"
+	"github.com/paulmach/orb/geojson"
 
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -101,17 +103,22 @@ func getLocations(ctx echo.Context) error {
 	}
 	defer rows.Close()
 
-	data := []payload{}
+	fc := geojson.NewFeatureCollection()
+
 	for rows.Next() {
 		i := payload{}
 		err = rows.Scan(&i.Id, &i.T, &i.Batt, &i.Topic, &i.Tid, &i.Lat, &i.Lon, &i.Tst)
 		if err != nil {
 			return echo.NewHTTPError(http.StatusInternalServerError, err)
 		}
-		data = append(data, i)
+		feature := geojson.NewFeature(orb.Point{i.Lat, i.Lon})
+		feature.Properties["battery"] = i.Batt
+		feature.Properties["id"] = i.Id
+
+		fc.Append(feature)
 	}
 
-	return ctx.JSON(http.StatusOK, data)
+	return ctx.JSON(http.StatusOK, fc)
 }
 
 func deleteLocation(ctx echo.Context) error {
@@ -143,5 +150,5 @@ func main() {
 	e.POST("/locations", postLocation)
 	e.DELETE("/locations/:id", deleteLocation)
 
-	e.Logger.Fatal(e.Start(":8090"))
+	e.Logger.Fatal(e.Start(":8091"))
 }
