@@ -9,7 +9,6 @@
     import DatePicker from './DatePicker.svelte'
 
     let map: maplibregl.Map;
-    var markers = [];
 
     let dateStart
     let dateEnd
@@ -18,8 +17,7 @@
         map = new maplibregl.Map({
             container: 'map', // container id
             style: 'https://api.maptiler.com/maps/streets-v2/style.json?key=9gPJtf3luQ9Ud3c7AHJ6', // style URL
-            // center: ["-104.9903", "39.7392"], // starting position [lng, lat]
-            // zoom: 10 // starting zoom
+            bounds: [[-124.7844079, 49.3457868], [-66.9513812,  24.7433195]]
         });
         map.addControl(new maplibregl.NavigationControl({}));
 
@@ -43,11 +41,7 @@
 
     async function updateLocations(e) {
         let url = 'http://192.168.0.100:8090/locations'
-        //First remove current markers
-        markers.forEach(marker => {
-            marker.remove()
-        });
-        
+
         if (e.detail.start && e.detail.end) {
             let start: Date = e.detail.start;
             let end: Date = e.detail.end;
@@ -66,16 +60,11 @@
         console.log(url)
         const locs =  await fetch(url);
         const data = await locs.json();
-
-        markers = []
+        
+        // first set bounds
         let bounds = new maplibregl.LngLatBounds();
-        data.forEach(point => {
-            var marker = new maplibregl.Marker()
-                        .setLngLat([point.Lon, point.Lat])
-                        .addTo(map)
-            
-            markers.push(marker)
-            bounds.extend([point.Lon, point.Lat])
+        data.features.forEach(feature => {
+            bounds.extend([feature.geometry.coordinates[0], feature.geometry.coordinates[1]])
         });
 
         if (data.length != 0) {
@@ -83,6 +72,22 @@
                 padding: 100
             });
         }
+
+        map.addSource('the-data', {
+            'type': 'geojson',
+            'data': data
+        });
+
+        map.addLayer({
+            'id': 'points',
+            'type': 'circle',
+            'source': 'the-data',
+            'paint': {
+                'circle-radius': 6,
+                'circle-color': '#B42222'
+            },
+            'filter': ['==', '$type', 'Point']
+        });
     };
 
     onDestroy(() => {

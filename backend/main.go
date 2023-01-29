@@ -111,7 +111,7 @@ func getLocations(ctx echo.Context) error {
 		if err != nil {
 			return echo.NewHTTPError(http.StatusInternalServerError, err)
 		}
-		feature := geojson.NewFeature(orb.Point{i.Lat, i.Lon})
+		feature := geojson.NewFeature(orb.Point{i.Lon, i.Lat})
 		feature.Properties["battery"] = i.Batt
 		feature.Properties["id"] = i.Id
 
@@ -150,5 +150,5 @@ func main() {
 	e.POST("/locations", postLocation)
 	e.DELETE("/locations/:id", deleteLocation)
 
-	e.Logger.Fatal(e.Start(":8091"))
+	e.Logger.Fatal(e.Start(":8090"))
 }
