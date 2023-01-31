@@ -39,7 +39,7 @@
     }
 
     async function updateLocations(e) {
-        let url = "http://192.168.0.100:8091/locations";
+        let url = "http://192.168.0.100:8090/locations";
 
         if (e.detail.start && e.detail.end) {
             let start: Date = e.detail.start;
