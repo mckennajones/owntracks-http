@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"strconv"
 	"time"
+	"os"
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
@@ -31,9 +32,12 @@ type payload struct {
 
 var db *sql.DB
 
+var DbPath string
+var Port string
+
 func initDatabase() {
 	var err error
-	db, err = sql.Open("sqlite3", "./data/owntracks.db")
+	db, err = sql.Open("sqlite3", DbPath)
 	if err != nil {
 		log.Fatal("Failed to open DB: ", err)
 	}
@@ -140,6 +144,15 @@ func deleteLocation(ctx echo.Context) error {
 }
 
 func main() {
+	DbPath = os.Getenv("DATABASE_PATH")
+	if len(DbPath) == 0 {
+		DbPath = "./data/owntracks.db"
+	}
+	Port = os.Getenv("REST_PORT")
+	if len(Port) == 0 {
+		Port = ":8090"
+	}
+
 	initDatabase()
 
 	e := echo.New()
@@ -150,5 +163,5 @@ func main() {
 	e.POST("/locations", postLocation)
 	e.DELETE("/locations/:id", deleteLocation)
 
-	e.Logger.Fatal(e.Start(":8090"))
+	e.Logger.Fatal(e.Start(Port))
 }

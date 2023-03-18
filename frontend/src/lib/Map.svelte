@@ -11,7 +11,7 @@
     function load() {
         map = new maplibregl.Map({
             container: "map", // container id
-            style: "https://api.maptiler.com/maps/streets-v2/style.json?key=9gPJtf3luQ9Ud3c7AHJ6", // style URL
+            style: import.meta.env.VITE_MAP_STYLE_URL, // style URL
             bounds: [
                 [-124.7844079, 49.3457868],
                 [-66.9513812, 24.7433195],
@@ -39,7 +39,7 @@
     }
 
     async function updateLocations(e) {
-        let url = "http://192.168.0.100:8090/locations";
+        let url = import.meta.env.VITE_BACKEND_URL;
 
         if (e.detail.start && e.detail.end) {
             let start: Date = e.detail.start;
