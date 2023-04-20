@@ -12,6 +12,7 @@ RUN npm run build
 
 FROM nginx:alpine
 
-# Copy the static website
-# Use the .dockerignore file to control what ends up inside the image!
+COPY --from=build /workspace/env.sh /docker-entrypoint.d/env.sh
+COPY --from=build /workspace/env-template.js env-template.js
+
 COPY --from=build /workspace/dist /usr/share/nginx/html

@@ -13,7 +13,7 @@ services:
   
   frontend:
     container_name: owntracks-frontend
-    image: owntracks-frontend:0.1.4
+    image: owntracks-frontend:0.1.5
     build: ./frontend
     ports:
       - "8080:80/tcp"
