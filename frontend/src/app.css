@@ -52,3 +52,7 @@ h1 {
   line-height: 1.1;
 }
 
+.popup {
+  text-align: left;
+  color: black;
+}

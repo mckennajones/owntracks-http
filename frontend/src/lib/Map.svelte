@@ -39,6 +39,18 @@
         });
     }
 
+
+    window.deletePoint = (id) => {
+        if (window.confirm('Are you sure you want to delete this point?')) {
+            console.log('Deleting point with id: ' + id)
+            let url = window.API_BASE_URL + "/locations/" + id
+            fetch(url, {
+                method: 'DELETE'
+            })
+            // TODO surface API error somehow?
+        }
+    }
+
     async function updateLocations(e) {
         // @ts-ignore
         let url = window.API_BASE_URL + "/locations"
@@ -74,6 +86,42 @@
             type: "geojson",
             data: data,
         });
+
+        map.on('mouseenter', 'points', (e) => {
+            map.getCanvas().style.cursor = 'pointer';
+        });
+
+        map.on('mouseleave', 'points', () => {
+            map.getCanvas().style.cursor = 'grab';
+        });
+
+        map.on('click', 'points', (e) => {
+            console.log(e.features[0]);
+            let properties = e.features[0].properties;
+            const coordinates = e.features[0].geometry.coordinates.slice();
+            
+            let id = properties.id;
+            let time = new Date(properties.time * 1000);
+            
+            let description = `
+            <div class='popup'>
+                <p>ID: ${id}</p>
+                <p>Time: ${time.toLocaleString()}</p>
+
+                <input type="button" value="Delete" onclick="deletePoint(${id})" />
+            </div>
+            `
+
+            
+
+            let popup = new maplibregl.Popup({closeOnClick: true})
+                .setLngLat(coordinates)
+                .setHTML(description)
+                .addTo(map);
+
+            popup.addClassName('popup')
+
+        })
 
         map.addLayer(
             {
@@ -154,37 +202,8 @@
                 'source': 'main',
                 'minzoom': 8,
                 'paint': {
-                    // Size circle radius by earthquake magnitude and zoom level
-                    'circle-radius': [
-                        'interpolate',
-                        ['linear'],
-                        ['zoom'],
-                        7,
-                        ['interpolate', ['linear'], ['get', 'mag'], 1, 1, 6, 4],
-                        16,
-                        ['interpolate', ['linear'], ['get', 'mag'], 1, 5, 6, 50]
-                    ],
-                    // Color circle by earthquake magnitude
-                    'circle-color': [
-                        'interpolate',
-                        ['linear'],
-                        ['get', 'mag'],
-                        1,
-                        'rgba(33,102,172,0)',
-                        2,
-                        'rgb(103,169,207)',
-                        3,
-                        'rgb(209,229,240)',
-                        4,
-                        'rgb(253,219,199)',
-                        5,
-                        'rgb(239,138,98)',
-                        6,
-                        'rgb(178,24,43)'
-                    ],
                     'circle-stroke-color': 'white',
                     'circle-stroke-width': 1,
-                    // Transition from heatmap to circle layer by zoom level
                     'circle-opacity': [
                         'interpolate',
                         ['linear'],

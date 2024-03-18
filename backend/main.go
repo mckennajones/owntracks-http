@@ -118,6 +118,7 @@ func getLocations(ctx echo.Context) error {
 		feature := geojson.NewFeature(orb.Point{i.Lon, i.Lat})
 		feature.Properties["battery"] = i.Batt
 		feature.Properties["id"] = i.Id
+		feature.Properties["time"] = i.Tst
 
 		fc.Append(feature)
 	}
