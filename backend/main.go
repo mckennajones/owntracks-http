@@ -22,12 +22,14 @@ type payload struct {
 	Id    int
 	Type  string `json:"_type"`
 	T     string
+	Alt   *int
 	Batt  int
 	Lat   float64
 	Lon   float64
 	Tid   string
 	Tst   int
 	Topic string
+	Vel   *int
 }
 
 var db *sql.DB
@@ -47,12 +49,14 @@ func initDatabase() {
 	(
 	  id INTEGER PRIMARY KEY,
 	  t  TEXT NOT NULL,                -- trigger
+	  alt INTEGER,
 	  batt INTEGER,
 	  topic TEXT, 
 	  tid TEXT NOT NULL,                -- tracker id, identifies the device
 	  lat REAL NOT NULL,                -- latitude
 	  lon REAL NOT NULL,                -- longitude
-	  tst INTEGER NOT NULL UNIQUE       -- timestamp, only one datapoint per tst allowed
+	  tst INTEGER NOT NULL UNIQUE,       -- timestamp, only one datapoint per tst allowed
+	  vel INTEGER
 	);`
 
 	if _, err := db.Exec(createLocationsTable); err != nil {
@@ -74,7 +78,7 @@ func postLocation(ctx echo.Context) error {
 		return ctx.String(http.StatusOK, "Recieved request of type, "+p.Type+" which is not supported. Ignoring")
 	}
 
-	res, err := db.Exec("INSERT INTO locations (t, batt, topic, lat, lon, tst, tid) VALUES (?, ?, ?, ?, ?, ?, ?);", p.T, p.Batt, p.Topic, p.Lat, p.Lon, p.Tst, p.Tid)
+	res, err := db.Exec("INSERT INTO locations (t, alt, batt, topic, lat, lon, tst, tid, vel) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);", p.T, p.Alt, p.Batt, p.Topic, p.Lat, p.Lon, p.Tst, p.Tid, p.Vel)
 	if err != nil {
 		log.Println("Insert error: ", err)
 		return ctx.String(http.StatusOK, "")
@@ -111,7 +115,7 @@ func getLocations(ctx echo.Context) error {
 
 	for rows.Next() {
 		i := payload{}
-		err = rows.Scan(&i.Id, &i.T, &i.Batt, &i.Topic, &i.Tid, &i.Lat, &i.Lon, &i.Tst)
+		err = rows.Scan(&i.Id, &i.T, &i.Batt, &i.Topic, &i.Tid, &i.Lat, &i.Lon, &i.Tst, &i.Alt, &i.Vel)
 		if err != nil {
 			return echo.NewHTTPError(http.StatusInternalServerError, err)
 		}
@@ -119,6 +123,8 @@ func getLocations(ctx echo.Context) error {
 		feature.Properties["battery"] = i.Batt
 		feature.Properties["id"] = i.Id
 		feature.Properties["time"] = i.Tst
+		feature.Properties["altitude"] = i.Alt
+		feature.Properties["velocity"] = i.Vel
 
 		fc.Append(feature)
 	}

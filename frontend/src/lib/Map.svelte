@@ -102,11 +102,15 @@
             
             let id = properties.id;
             let time = new Date(properties.time * 1000);
+            let altitude = properties.altitude;
+            let velocity = properties.velocity;
             
             let description = `
             <div class='popup'>
                 <p>ID: ${id}</p>
                 <p>Time: ${time.toLocaleString()}</p>
+                <p>Altitude: ${altitude} meters</p>
+                <p>Velocity: ${velocity} Km/H</p>
 
                 <input type="button" value="Delete" onclick="deletePoint(${id})" />
             </div>
