@@ -1,6 +1,5 @@
 <script lang="ts">
   	import { createEventDispatcher } from 'svelte';
-    import { DateInput } from 'date-picker-svelte';
     import { DatePicker, DatePickerInput } from "carbon-components-svelte";
     import "carbon-components-svelte/css/g90.css";
 

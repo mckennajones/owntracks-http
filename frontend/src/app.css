@@ -4,55 +4,224 @@
   line-height: 24px;
   font-weight: 400;
 
-  color-scheme: light dark;
+  color-scheme: dark;
   color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
+  background-color: #0f1117;
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   -webkit-text-size-adjust: 100%;
-  --date-picker-background: #1b1e27;
-  --date-picker-foreground: #f7f7f7;
+
+  --panel-bg: rgba(20, 23, 33, 0.82);
+  --panel-border: rgba(255, 255, 255, 0.08);
+  --accent: #7c8cff;
+  --danger: #ff4d6d;
 }
 
-body { 
-  margin: 0; 
-  padding: 0; 
+body {
+  margin: 0;
+  padding: 0;
 }
 
-#map { 
-  position: absolute; 
-  top: 0; 
-  bottom: 0; 
+#map {
+  position: absolute;
+  top: 0;
+  bottom: 0;
   width: 100%;
 }
 
-#date-picker {
+/* floating panels */
+.panel {
   position: absolute;
   z-index: 2;
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-border);
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
 }
 
-/* .date-time-field {
-  display: inline-block
-} */
-
-a {
-  font-weight: 500;
-  color: #646cff;
-  text-decoration: inherit;
-}
-a:hover {
-  color: #535bf2;
+#date-picker {
+  top: 16px;
+  left: 16px;
+  padding: 10px 12px 8px;
+  max-width: calc(100vw - 32px);
 }
 
-h1 {
-  font-size: 3.2em;
-  line-height: 1.1;
+#date-picker .bx--date-picker {
+  gap: 4px;
+}
+
+#date-picker .bx--date-picker-container {
+  min-width: 0;
+}
+
+#date-picker input.bx--date-picker__input {
+  width: 8.5rem;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 6px;
+}
+
+#date-picker .status {
+  margin-top: 6px;
+  font-size: 12px;
+  line-height: 16px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.status-error {
+  color: var(--danger);
+}
+
+/* map controls */
+.maplibregl-ctrl-group {
+  background: var(--panel-bg) !important;
+  border: 1px solid var(--panel-border);
+  border-radius: 10px !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35) !important;
+  backdrop-filter: blur(10px);
+}
+
+.maplibregl-ctrl-group button + button {
+  border-top: 1px solid var(--panel-border) !important;
+}
+
+.maplibregl-ctrl-group button .maplibregl-ctrl-icon {
+  filter: invert(1);
+}
+
+.maplibregl-ctrl-attrib {
+  background: rgba(20, 23, 33, 0.6) !important;
+  color: rgba(255, 255, 255, 0.5) !important;
+}
+
+.maplibregl-ctrl-attrib a {
+  color: rgba(255, 255, 255, 0.7) !important;
+}
+
+/* popup */
+.maplibregl-popup .maplibregl-popup-content {
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-border);
+  border-radius: 12px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(10px);
+  padding: 12px 14px;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.maplibregl-popup.maplibregl-popup-anchor-top .maplibregl-popup-tip,
+.maplibregl-popup.maplibregl-popup-anchor-top-left .maplibregl-popup-tip,
+.maplibregl-popup.maplibregl-popup-anchor-top-right .maplibregl-popup-tip {
+  border-bottom-color: rgba(20, 23, 33, 0.95);
+}
+
+.maplibregl-popup.maplibregl-popup-anchor-bottom .maplibregl-popup-tip,
+.maplibregl-popup.maplibregl-popup-anchor-bottom-left .maplibregl-popup-tip,
+.maplibregl-popup.maplibregl-popup-anchor-bottom-right .maplibregl-popup-tip {
+  border-top-color: rgba(20, 23, 33, 0.95);
+}
+
+.maplibregl-popup.maplibregl-popup-anchor-left .maplibregl-popup-tip {
+  border-right-color: rgba(20, 23, 33, 0.95);
+}
+
+.maplibregl-popup.maplibregl-popup-anchor-right .maplibregl-popup-tip {
+  border-left-color: rgba(20, 23, 33, 0.95);
+}
+
+.maplibregl-popup .maplibregl-popup-close-button {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 18px;
+  padding: 2px 8px;
+}
+
+.maplibregl-popup .maplibregl-popup-close-button:hover {
+  background: transparent;
+  color: #fff;
 }
 
 .popup {
   text-align: left;
-  color: black;
+  min-width: 170px;
+  padding-right: 14px;
+}
+
+.popup-time {
+  font-weight: 600;
+  font-size: 14px;
+  margin-bottom: 6px;
+}
+
+.popup-stats {
+  display: flex;
+  gap: 14px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.popup-stats span {
+  font-size: 16px;
+  font-weight: 600;
+  color: #fff;
+}
+
+.popup-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 10px;
+}
+
+.popup-foot small {
+  color: rgba(255, 255, 255, 0.35);
+}
+
+.popup-delete {
+  background: transparent;
+  color: var(--danger);
+  border: 1px solid var(--danger);
+  border-radius: 6px;
+  padding: 3px 12px;
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.popup-delete:hover:not(:disabled) {
+  background: var(--danger);
+  color: #fff;
+}
+
+.popup-delete:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.popup-error {
+  color: var(--danger);
+  font-size: 12px;
+  margin-top: 6px;
+}
+
+.popup-error:empty {
+  display: none;
+}
+
+@media (max-width: 600px) {
+  #date-picker {
+    top: 8px;
+    left: 8px;
+    right: 8px;
+    max-width: none;
+  }
+
+
+  .maplibregl-ctrl-group button {
+    width: 40px;
+    height: 40px;
+  }
 }

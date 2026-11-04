@@ -1,35 +1,53 @@
 <script lang="ts">
     import maplibregl from "maplibre-gl";
-    import { onDestroy } from "svelte";
+    import "maplibre-gl/dist/maplibre-gl.css";
+    import { onDestroy, onMount } from "svelte";
     import DatePicker from "./DatePicker.svelte";
 
     let map: maplibregl.Map;
+    let container: HTMLDivElement;
 
     let dateStart;
     let dateEnd;
 
-    function load() {
+    let count: number | null = null;
+    let loading = false;
+    let error = "";
+
+    const EMPTY = { type: "FeatureCollection", features: [] } as any;
+
+    const POINT_COLOR = "#4f6bed";
+
+    function esc(v: unknown) {
+        return String(v ?? "").replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
+    }
+
+    onMount(() => {
+        const urlParams = new URLSearchParams(window.location.search);
+        dateStart = urlParams.get("start");
+        dateEnd = urlParams.get("end");
+
         map = new maplibregl.Map({
-            container: "map", // container id
+            container,
             // @ts-ignore
-            style: window.MAP_STYLE_URL, // style URL
+            style: window.MAP_STYLE_URL,
             bounds: [
                 [-124.7844079, 49.3457868],
                 [-66.9513812, 24.7433195],
             ],
+            attributionControl: false,
         });
-        map.addControl(new maplibregl.NavigationControl({}));
+        // @ts-ignore
+        if (import.meta.env.DEV) window.__map = map; // handy for debugging / e2e
+        map.addControl(new maplibregl.NavigationControl({}), "bottom-right");
+        map.addControl(
+            new maplibregl.AttributionControl({ compact: true }),
+            "bottom-left",
+        );
 
-        const urlParams = new URLSearchParams(window.location.search);
-        if (urlParams.has("start")) {
-            dateStart = urlParams.get("start");
-        }
-
-        if (urlParams.has("end")) {
-            dateEnd = urlParams.get("end");
-        }
-
-        map.on("load", function (e) {
+        map.on("load", () => {
+            setupLayers();
+            setupInteractions();
             updateLocations({
                 detail: {
                     start: dateStart ? new Date(dateStart) : "",
@@ -37,208 +55,226 @@
                 },
             });
         });
+    });
+
+    function setupLayers() {
+        map.addSource("main", { type: "geojson", data: EMPTY });
+
+        // faint route line; built from time-sorted points in updateLocations
+        map.addSource("route", { type: "geojson", data: EMPTY });
+        map.addLayer({
+            id: "route",
+            type: "line",
+            source: "route",
+            layout: { "line-join": "round", "line-cap": "round" },
+            paint: {
+                "line-color": "#9fb4ff",
+                "line-opacity": ["interpolate", ["linear"], ["zoom"], 6, 0, 9, 0.35],
+                "line-width": ["interpolate", ["linear"], ["zoom"], 8, 1, 16, 3],
+            },
+        });
+
+        map.addLayer({
+            id: "heat",
+            type: "heatmap",
+            source: "main",
+            maxzoom: 15,
+            paint: {
+                "heatmap-weight": 0.25,
+                "heatmap-intensity": ["interpolate", ["linear"], ["zoom"], 0, 0.4, 9, 1],
+                "heatmap-color": [
+                    "interpolate",
+                    ["linear"],
+                    ["heatmap-density"],
+                    0, "rgba(140,170,255,0)",
+                    0.2, "rgba(140,170,255,0.55)",
+                    0.45, "rgb(90,130,245)",
+                    0.7, "rgb(55,80,220)",
+                    1, "rgb(25,30,130)",
+                ],
+                "heatmap-radius": ["interpolate", ["linear"], ["zoom"], 0, 3, 9, 22, 14, 40],
+                "heatmap-opacity": ["interpolate", ["linear"], ["zoom"], 7, 1, 10, 0],
+            },
+        });
+
+        // soft glow under the points
+        map.addLayer({
+            id: "points-glow",
+            type: "circle",
+            source: "main",
+            minzoom: 8,
+            paint: {
+                "circle-color": POINT_COLOR,
+                "circle-radius": ["interpolate", ["linear"], ["zoom"], 8, 6, 16, 16],
+                "circle-blur": 1,
+                "circle-opacity": ["interpolate", ["linear"], ["zoom"], 8, 0, 10, 0.35],
+            },
+        });
+
+        map.addLayer({
+            id: "points",
+            type: "circle",
+            source: "main",
+            minzoom: 8,
+            paint: {
+                "circle-color": POINT_COLOR,
+                "circle-radius": ["interpolate", ["linear"], ["zoom"], 8, 2.5, 16, 7],
+                "circle-stroke-color": "rgba(10,12,20,0.85)",
+                "circle-stroke-width": 1,
+                "circle-opacity": ["interpolate", ["linear"], ["zoom"], 8, 0, 10, 1],
+                "circle-stroke-opacity": ["interpolate", ["linear"], ["zoom"], 8, 0, 10, 1],
+            },
+        });
+
+        map.addLayer({
+            id: "points-hover",
+            type: "circle",
+            source: "main",
+            minzoom: 8,
+            filter: ["==", ["get", "id"], -1],
+            paint: {
+                "circle-color": "rgba(0,0,0,0)",
+                "circle-radius": ["interpolate", ["linear"], ["zoom"], 8, 6, 16, 12],
+                "circle-stroke-color": "#ffffff",
+                "circle-stroke-width": 2,
+            },
+        });
     }
 
+    function setupInteractions() {
+        map.on("mouseenter", "points", () => {
+            map.getCanvas().style.cursor = "pointer";
+        });
+        map.on("mousemove", "points", (e) => {
+            map.setFilter("points-hover", ["==", ["get", "id"], e.features[0].properties.id]);
+        });
+        map.on("mouseleave", "points", () => {
+            map.getCanvas().style.cursor = "";
+            map.setFilter("points-hover", ["==", ["get", "id"], -1]);
+        });
 
-    window.deletePoint = (id) => {
-        if (window.confirm('Are you sure you want to delete this point?')) {
-            console.log('Deleting point with id: ' + id)
-            let url = window.API_BASE_URL + "/locations/" + id
-            fetch(url, {
-                method: 'DELETE'
-            })
-            // TODO surface API error somehow?
-        }
+        map.on("click", "points", (e) => {
+            const feature = e.features[0];
+            const p = feature.properties;
+            // @ts-ignore
+            const coordinates = feature.geometry.coordinates.slice();
+            const time = new Date(p.time * 1000);
+            const fmt = (v, digits = 0) =>
+                v === undefined || v === null || v === "null" ? "–" : Number(v).toFixed(digits);
+
+            const html = `
+            <div class="popup">
+                <div class="popup-time">${esc(
+                    time.toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" }),
+                )}</div>
+                <div class="popup-stats">
+                    <div><span>${fmt(p.altitude)}</span> m</div>
+                    ${p.battery !== undefined && p.battery !== "null" ? `<div><span>${esc(p.battery)}</span>% bat</div>` : ""}
+                </div>
+                <div class="popup-foot">
+                    <small>#${esc(p.id)}</small>
+                    <button type="button" class="popup-delete">Delete</button>
+                </div>
+                <div class="popup-error"></div>
+            </div>`;
+
+            const popup = new maplibregl.Popup({ closeOnClick: true, offset: 10 })
+                .setLngLat(coordinates)
+                .setHTML(html)
+                .addTo(map);
+
+            const el = popup.getElement();
+            el.querySelector(".popup-delete").addEventListener("click", async (ev) => {
+                const btn = ev.currentTarget as HTMLButtonElement;
+                if (!window.confirm("Are you sure you want to delete this point?")) return;
+                btn.disabled = true;
+                try {
+                    // @ts-ignore
+                    const res = await fetch(`${window.API_BASE_URL}/locations/${p.id}`, {
+                        method: "DELETE",
+                    });
+                    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                    popup.remove();
+                    await updateLocations(currentRange(), false);
+                } catch (err) {
+                    btn.disabled = false;
+                    el.querySelector(".popup-error").textContent = `Delete failed: ${err.message}`;
+                }
+            });
+        });
     }
 
-    async function updateLocations(e) {
+    let lastDetail: any = { start: "", end: "" };
+    function currentRange() {
+        return { detail: lastDetail };
+    }
+
+    async function updateLocations(e, fit = true) {
+        lastDetail = {
+            start: e.detail.start ? new Date(e.detail.start) : "",
+            end: e.detail.end ? new Date(e.detail.end) : "",
+        };
+
         // @ts-ignore
-        let url = window.API_BASE_URL + "/locations"
+        let url = window.API_BASE_URL + "/locations";
 
-        if (e.detail.start && e.detail.end) {
-            let start: Date = e.detail.start;
-            let end: Date = e.detail.end;
-
-            end.setHours(23);
-            end.setMinutes(59);
-            end.setSeconds(59);
-
-            console.log(start, end);
-
+        if (lastDetail.start && lastDetail.end) {
+            const start: Date = new Date(lastDetail.start);
+            const end: Date = new Date(lastDetail.end);
+            end.setHours(23, 59, 59);
             url += `?start=${start.toISOString()}&end=${end.toISOString()}`;
         }
 
-        console.log(url);
-        const locs = await fetch(url);
-        const data = await locs.json();
-
-        if (map.getLayer("heat") != undefined) {
-            map.removeLayer("heat");
+        loading = true;
+        error = "";
+        let data;
+        try {
+            const res = await fetch(url);
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            data = await res.json();
+        } catch (err) {
+            error = `Couldn't load locations (${err.message})`;
+            loading = false;
+            return;
         }
-        if (map.getLayer("points") != undefined) {
-            map.removeLayer("points");
+        loading = false;
+
+        const features = data.features ?? [];
+        count = features.length;
+
+        (map.getSource("main") as maplibregl.GeoJSONSource).setData(data);
+
+        // split into trips wherever there is a long gap, so we don't draw
+        // misleading straight lines between unrelated visits
+        const MAX_GAP_S = 30 * 60;
+        const sorted = [...features].sort((a, b) => a.properties.time - b.properties.time);
+        const trips: number[][][] = [];
+        let prev = null;
+        for (const f of sorted) {
+            if (!prev || f.properties.time - prev.properties.time > MAX_GAP_S) trips.push([]);
+            trips[trips.length - 1].push(f.geometry.coordinates);
+            prev = f;
         }
-        if (map.getSource("main") != undefined) {
-            map.removeSource("main")
-        }
+        (map.getSource("route") as maplibregl.GeoJSONSource).setData({
+            type: "FeatureCollection",
+            features: trips
+                .filter((t) => t.length > 1)
+                .map((coordinates) => ({
+                    type: "Feature",
+                    properties: {},
+                    geometry: { type: "LineString", coordinates },
+                })),
+        } as any);
 
-        map.addSource("main", {
-            type: "geojson",
-            data: data,
-        });
-
-        map.on('mouseenter', 'points', (e) => {
-            map.getCanvas().style.cursor = 'pointer';
-        });
-
-        map.on('mouseleave', 'points', () => {
-            map.getCanvas().style.cursor = 'grab';
-        });
-
-        map.on('click', 'points', (e) => {
-            console.log(e.features[0]);
-            let properties = e.features[0].properties;
-            const coordinates = e.features[0].geometry.coordinates.slice();
-            
-            let id = properties.id;
-            let time = new Date(properties.time * 1000);
-            let altitude = properties.altitude;
-            let velocity = properties.velocity;
-            
-            let description = `
-            <div class='popup'>
-                <p>ID: ${id}</p>
-                <p>Time: ${time.toLocaleString()}</p>
-                <p>Altitude: ${altitude} meters</p>
-                <p>Velocity: ${velocity} Km/H</p>
-
-                <input type="button" value="Delete" onclick="deletePoint(${id})" />
-            </div>
-            `
-
-            
-
-            let popup = new maplibregl.Popup({closeOnClick: true})
-                .setLngLat(coordinates)
-                .setHTML(description)
-                .addTo(map);
-
-            popup.addClassName('popup')
-
-        })
-
-        map.addLayer(
-            {
-                'id': 'heat',
-                'type': 'heatmap',
-                'source': 'main',
-                'maxzoom': 15,
-                'paint': {
-                    // Increase the heatmap weight based on frequency and property magnitude
-                    'heatmap-weight': [
-                        'interpolate',
-                        ['linear'],
-                        ['get', 'mag'],
-                        0,
-                        0,
-                        6,
-                        1
-                    ],
-                    // Increase the heatmap color weight weight by zoom level
-                    // heatmap-intensity is a multiplier on top of heatmap-weight
-                    'heatmap-intensity': [
-                        'interpolate',
-                        ['linear'],
-                        ['zoom'],
-                        0,
-                        1,
-                        9,
-                        3
-                    ],
-                    // Color ramp for heatmap.  Domain is 0 (low) to 1 (high).
-                    // Begin color ramp at 0-stop with a 0-transparancy color
-                    // to create a blur-like effect.
-                    'heatmap-color': [
-                        'interpolate',
-                        ['linear'],
-                        ['heatmap-density'],
-                        0,
-                        'rgba(33,102,172,0)',
-                        0.2,
-                        'rgb(103,169,207)',
-                        0.4,
-                        'rgb(209,229,240)',
-                        0.6,
-                        'rgb(253,219,199)',
-                        0.8,
-                        'rgb(239,138,98)',
-                        1,
-                        'rgb(178,24,43)'
-                    ],
-                    // Adjust the heatmap radius by zoom level
-                    'heatmap-radius': [
-                        'interpolate',
-                        ['linear'],
-                        ['zoom'],
-                        0,
-                        2,
-                        9,
-                        20
-                    ],
-                    // Transition from heatmap to circle layer by zoom level
-                    'heatmap-opacity': [
-                        'interpolate',
-                        ['linear'],
-                        ['zoom'],
-                        7,
-                        1,
-                        9,
-                        0
-                    ]
-                }
-            },
-        );
-
-        map.addLayer(
-            {
-                'id': 'points',
-                'type': 'circle',
-                'source': 'main',
-                'minzoom': 8,
-                'paint': {
-                    'circle-stroke-color': 'white',
-                    'circle-stroke-width': 1,
-                    'circle-opacity': [
-                        'interpolate',
-                        ['linear'],
-                        ['zoom'],
-                        7,
-                        0,
-                        8,
-                        1
-                    ]
-                }
-            },
-        );
-
-        // first set bounds
-        let bounds = new maplibregl.LngLatBounds();
-        data.features.forEach((feature) => {
-            bounds.extend([
-                feature.geometry.coordinates[0],
-                feature.geometry.coordinates[1],
-            ]);
-        });
-
-        if (data.features.length != 0) {
+        if (fit && features.length != 0) {
+            const bounds = new maplibregl.LngLatBounds();
+            features.forEach((f) => bounds.extend([f.geometry.coordinates[0], f.geometry.coordinates[1]]));
             map.fitBounds(bounds, {
                 padding: 100,
+                maxZoom: 15,
                 duration: 1750,
                 essential: true,
-                animate: true,
-                easing: function (t) {
-                    return t * t * t;
-                },
+                easing: (t) => t * t * t,
             });
         }
     }
@@ -248,16 +284,17 @@
     });
 </script>
 
-<svelte:head>
-    <!-- <script src="https://unpkg.com/maplibre-gl@2.4.0/dist/maplibre-gl.js"></script> -->
-    <link
-        href="https://unpkg.com/maplibre-gl@2.4.0/dist/maplibre-gl.css"
-        rel="stylesheet"
-        on:load={load}
-    />
-</svelte:head>
+<div id="map" bind:this={container} />
 
-<div id="map" />
-<div id="date-picker">
+<div id="date-picker" class="panel">
     <DatePicker on:dateChange={updateLocations} {dateStart} {dateEnd} />
+    <div class="status">
+        {#if error}
+            <span class="status-error">{error}</span>
+        {:else if loading}
+            Loading…
+        {:else if count !== null}
+            {count.toLocaleString()} point{count === 1 ? "" : "s"}
+        {/if}
+    </div>
 </div>
